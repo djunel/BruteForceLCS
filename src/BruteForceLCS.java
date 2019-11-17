@@ -1,8 +1,16 @@
+import javax.swing.tree.ExpandVetoException;
+import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Random;
+import java.util.stream.Stream;
+
 
 public class BruteForceLCS {
 
@@ -19,18 +27,22 @@ public class BruteForceLCS {
         /* define constants */
         static long MAXVALUE =  2000000000;
         static long MINVALUE = -2000000000;
-        static int numberOfTrials = 50;
-        static int MAXINPUTSIZE  = (int) Math.pow(1.5,24);
+        static int numberOfTrials = 1;
+        static int MAXINPUTSIZE  = (int) Math.pow(1.5,10);
         static int MININPUTSIZE  =  1;
 
         static int randomNumber = 0;
-
+        static String EnglishText = "";
+        static String EnglishText2 = "";
         // static int SIZEINCREMENT =  10000000; // not using this since we are doubling the size each time
         static final String fnl = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         static Random rnd = new Random();
+        static  String filepath1 = "/home/diana/JaneEyre.txt";
 
         static String s1 = "BELOWIFJASDIEKJSAJASDSASHFAEBD";
         static String s2 = "AAEIOLOOSIDJSDIJAWEJKNBE";
+        static String s12 = "";
+        static String s22 = "";
         static LCS result = new LCS();
 
         static String ResultsFolderPath = "/home/diana/Results/"; // pathname to results folder
@@ -40,19 +52,19 @@ public class BruteForceLCS {
 
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
             // run the whole experiment at least twice, and expect to throw away the data from the earlier runs, before java has fully optimized
 
             System.out.println("Running first full experiment...");
-            runFullExperiment("BruteForceLCS-Exp1-ThrowAway.txt");
+            runFullExperiment("BruteForceLCSEnglishCompare2Text-Exp1-ThrowAway.txt");
             System.out.println("Running second full experiment...");
-            runFullExperiment("BruteForceLCS-Exp2.txt");
+            runFullExperiment("BruteForceLCSEnglishCompare2Text-Exp2.txt");
             System.out.println("Running third full experiment...");
-            runFullExperiment("BruteForceLCS-Exp3.txt");
+            runFullExperiment("BruteForceLCSEnglishCompare2Text-Exp3.txt");
         }
 
-        static void runFullExperiment(String resultsFileName){
+        static void runFullExperiment(String resultsFileName) throws Exception {
             //declare variables for doubling ratio
             double[] averageArray = new double[1000];
             double currentAv = 0;
@@ -76,26 +88,41 @@ public class BruteForceLCS {
             ThreadCpuStopWatch TrialStopwatch = new ThreadCpuStopWatch(); // for timing an individual trial
 
             //add headers to text file
-            resultsWriter.println("#X(Value)  N(Size)  AverageTime        FibNumber   NumberOfTrials"); // # marks a comment in gnuplot data
+            resultsWriter.println("#X(Value) LCSLength  N(Size)  AverageTime        FibNumber   NumberOfTrials"); // # marks a comment in gnuplot data
             resultsWriter.flush();
 
             /* for each size of input we want to test: in this case starting small and doubling the size each time */
             for(int inputSize=MININPUTSIZE;inputSize<=MAXINPUTSIZE; inputSize*=2) {
+                //Create Random string
+                //s12 =  RandomString(inputSize);
+                //s22= RandomString(inputSize);
 
-                //s1 =  RandomString(inputSize );
-                //s2 = RandomString(inputSize);
-                StringBuilder sb = new StringBuilder();
+                ///generate strings with the same length and every character is the same - worst case scenario
+                /*StringBuilder sb = new StringBuilder();
                 for(int i = 0; i < inputSize; i++){
                     sb.append('C');
                 }
-                s1 = sb.toString();
+                s12 = sb.toString();
                 StringBuilder sb2 = new StringBuilder();
                 for(int i = 0; i < inputSize; i++){
                     sb2.append('C');
                 }
-                s2 = sb2.toString();
-                //System.out.println("s1 = " + s1);
-                //System.out.println("s2 = " + s2);
+                s22 = sb2.toString();*/
+
+                //Create two strings from English Text String
+                EnglishText = readFileAsString("/home/diana/senseandsensibility");
+                EnglishText = EnglishText.replaceAll("\\s", "");
+                EnglishText2 = readFileAsString("/home/diana/prideandprejudice");
+                EnglishText2 = EnglishText2.replaceAll("\\s", "");
+                //System.out.println(EnglishText);
+                //s12 = SubstringEnglishText(inputSize, EnglishText);
+                //s22 = SubstringEnglishText(inputSize, EnglishText);
+
+                s12 = EnglishText;
+                s22 = EnglishText2;
+
+                //System.out.println("s1 = " + s12);
+                //System.out.println("s2 = " + s22);
 
                 // progress message...
                 System.out.println("Running test for input size "+inputSize+" ... ");
@@ -132,8 +159,8 @@ public class BruteForceLCS {
 
                     //TrialStopwatch.start(); // *** uncomment this line if timing trials individually
                     /* run the function we're testing on the trial input */
-                     result = LargestCommonSubstring(s1, s2);
-                    //System.out.println("LSC length = " + result.LcsLength);
+                     result = LargestCommonSubstring(s12, s22);
+                    System.out.println("LSC length = " + result.LcsLength);
                     //System.out.println("Index at String 1 = " + result.lcsStartIndexInS1);
                     //System.out.println("Index at String 2 = " + result.lcsStartIndexInS2);
 
@@ -153,13 +180,33 @@ public class BruteForceLCS {
                 x++;
                 int countingbits = countBits(inputSize);
                 /* print data for this size of input */
-                resultsWriter.printf("%6d %6d %15.2f %4d\n",inputSize, countingbits, averageTimePerTrialInBatch, numberOfTrials); // might as well make the columns look nice
+                resultsWriter.printf("%6d %d %6d %15.2f %4d\n",inputSize, result.LcsLength, countingbits, averageTimePerTrialInBatch, numberOfTrials); // might as well make the columns look nice
                 resultsWriter.flush();
                 System.out.println(" ....done.");
             }
         }
 
-        //create a random string
+        //create substring from English Text
+        public static String SubstringEnglishText(int x, String EngText){
+            StringBuilder sb = new StringBuilder();
+            int randomStartIndex = 0;
+            randomStartIndex =(int) (0 + Math.random() * ((EngText.length() - x) - 0));
+            int i = 0;
+
+            for(i = 0; i < x; i++){
+                sb.append((EngText.charAt(randomStartIndex + i)));
+            }
+            //System.out.println("new String = " + sb.toString());
+            return sb.toString();
+        }
+
+    public static String readFileAsString(String fileName) throws Exception {
+        String data = "";
+        data = new String(Files.readAllBytes(Paths.get(fileName)));
+        return data;
+    }
+
+    //create a random string
         public static String RandomString(int x){
             StringBuilder sb = new StringBuilder();
             int y = 0;
