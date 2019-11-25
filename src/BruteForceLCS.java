@@ -140,7 +140,7 @@ public class BruteForceLCS {
                 //print progress to screen
                 //System.out.println("...done.");
                 System.out.print("    Running trial batch...");
-
+       
                 /* force garbage collection before each batch of trials run so it is not included in the time */
                 System.gc();
 
